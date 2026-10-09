@@ -1,0 +1,21 @@
+langchain==0.3.26
+# langchian use for building LLM applications
+flask==3.1.1 
+# flask use for building web applications
+sentence-transformers==4.1.0
+# sentence-transformers use for embedding text into vectors
+pypdf==5.6.1 
+# pypdf use for extracting text from PDF files
+python-dotenv==1.1.0
+# python-dotenv use for loading environment variables from a .env file
+langchain-pinecone==0.2.8 
+# langchain-pinecone use for integrating Pinecone with LangChain
+langchain-openai==0.3.24
+# langchain-openai use for integrating OpenAI with LangChain
+langchain-groq==0.3.8
+# langchain-groq use for integrating Groq models with LangChain
+langchain-community==0.3.26
+# langchain-community use for community-contributed integrations and tools for LangChain
+
+-e .
+# -e . use for installing the current package in editable mode

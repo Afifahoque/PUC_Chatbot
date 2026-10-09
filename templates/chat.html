@@ -1,0 +1,191 @@
+<!-- templates/chat.html
+  Updated design: white + sky-blue theme, logo area, typing indicator,
+  safe escaping of user input, show detected topic/entities under bot replies.
+
+  NOTE: Place your Premier University logo at: static/logo.png
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PUC Chatbot</title>
+
+  <!-- Bootstrap & icons (CDN) -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" />
+
+  <!-- App styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <div class="container py-4">
+    <div class="row justify-content-center">
+      <div class="col-md-8 col-lg-6">
+
+        <!-- Chat card -->
+        <div class="card chat-card shadow-sm">
+
+          <!-- Header: logo + title -->
+          <div class="card-header chat-header d-flex align-items-center">
+            <img src="{{ url_for('static', filename='puclogo.jpg') }}" alt="PUC logo" class="puc-logo mr-3" />
+            <div>
+              <h5 class="mb-0">PUC Chatbot</h5>
+              <small class="text-muted">Premier University — ask anything about admissions, courses & events</small>
+            </div>
+          </div>
+
+          <!-- Messages area -->
+          <div id="messages" class="card-body messages-area">
+            <!-- messages will be appended here -->
+          </div>
+
+          <!-- Typing indicator (hidden by default) -->
+          <div id="typingIndicator" class="typing-indicator px-3 pb-2" style="display:none;">
+            <div class="typing-dots">
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            </div>
+            <small class="text-muted">PUC Chatbot is typing...</small>
+          </div>
+
+          <!-- Footer / input -->
+          <div class="card-footer">
+            <form id="messageForm" class="d-flex">
+              <input id="textInput" name="msg" type="text" class="form-control mr-2" placeholder="Type your message..." autocomplete="off" required />
+              <button id="sendBtn" type="submit" class="btn send-btn">
+                <i class="fas fa-paper-plane"></i>
+              </button>
+            </form>
+          </div>
+
+        </div>
+        <!-- /.chat card -->
+      </div>
+    </div>
+  </div>
+
+  <!-- JQuery + Bootstrap JS (CDN) -->
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Small helper to escape text for safe DOM insertion
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    $(function () {
+      const $form = $("#messageForm");
+      const $input = $("#textInput");
+      const $send = $("#sendBtn");
+      const $messages = $("#messages");
+      const $typing = $("#typingIndicator");
+
+      function appendUserMessage(text) {
+        const now = new Date();
+        const time = now.getHours() + ":" + String(now.getMinutes()).padStart(2, '0');
+        const userHtml = `
+          <div class="d-flex justify-content-end mb-3">
+            <div class="message user-message">
+              ${escapeHtml(text)}
+              <div class="msg-meta text-muted">${time}</div>
+            </div>
+          </div>`;
+        $messages.append(userHtml);
+        $messages.scrollTop($messages[0].scrollHeight);
+      }
+
+      function appendBotMessage(htmlContent, metaText) {
+        const now = new Date();
+        const time = now.getHours() + ":" + String(now.getMinutes()).padStart(2, '0');
+        const metaHtml = metaText ? `<div class="reply-meta text-muted small mt-2">${escapeHtml(metaText)}</div>` : "";
+        const botHtml = `
+          <div class="d-flex justify-content-start mb-3">
+            <div class="message bot-message">
+              ${htmlContent}
+              ${metaHtml}
+              <div class="msg-meta text-muted">${time}</div>
+            </div>
+          </div>`;
+        $messages.append(botHtml);
+        $messages.scrollTop($messages[0].scrollHeight);
+      }
+
+      // Convert server-returned text containing '•' bullets into <ul><li>
+      function bulletsToHtml(text) {
+        if (!text) return "";
+        if (text.indexOf("•") !== -1) {
+          const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+          let ul = "<ul class='bot-list'>";
+          lines.forEach(line => {
+            if (line.startsWith("•")) line = line.slice(1).trim();
+            ul += `<li>${escapeHtml(line)}</li>`;
+          });
+          ul += "</ul>";
+          return ul;
+        } else {
+          // fallback: keep paragraphs and newlines
+          const paragraphs = text.split(/\r?\n\r?\n/).map(p => `<p>${escapeHtml(p.trim())}</p>`).join("");
+          return paragraphs || `<p>${escapeHtml(text)}</p>`;
+        }
+      }
+
+      $form.on("submit", function (e) {
+        e.preventDefault();
+        const raw = $input.val().trim();
+        if (!raw) return;
+
+        // append user message and clear input
+        appendUserMessage(raw);
+        $input.val("");
+
+        // disable input and show typing
+        $send.prop("disabled", true);
+        $input.prop("disabled", true);
+        $typing.show();
+
+        // call backend
+        $.ajax({
+          type: "POST",
+          url: "/get",
+          data: { msg: raw },
+          success: function (data) {
+            // data.html is already HTML produced by server (escaped). We still treat as HTML.
+            let botAnswerHtml = data.html || "";
+            // If server returned raw text instead, convert bullets on client side
+            if (!botAnswerHtml || botAnswerHtml.indexOf("<") === -1) {
+              botAnswerHtml = bulletsToHtml(botAnswerHtml || "");
+            }
+
+            // Build meta text from topic/entities
+            let metaText = "";
+            if (data.topic) metaText += `Topic: ${data.topic}. `;
+            if (data.entities && data.entities.length) {
+              const ents = data.entities.map(e => `${e.text}(${e.label})`).join(", ");
+              metaText += `Entities: ${ents}`;
+            }
+
+            appendBotMessage(botAnswerHtml, metaText);
+          },
+          error: function (xhr) {
+            appendBotMessage("<div class='error'>Sorry, an error occurred.</div>", "");
+            console.error("AJAX error", xhr);
+          },
+          complete: function () {
+            // re-enable input and hide typing
+            $send.prop("disabled", false);
+            $input.prop("disabled", false);
+            $input.focus();
+            $typing.hide();
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
