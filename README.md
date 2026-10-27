@@ -91,6 +91,27 @@ documents.
 ```bash
 python app.py
 ```
+## Chatbot UI & Capability Gallery
+
+Here are some examples showing how the bot handles institutional queries about Premier University Chittagong (PUC) alongside its strict scope guardrails for out-of-domain requests:
+
+### 1. Institutional Knowledge & Admissions
+| About PUC | Admissions Info | Course List |
+| :---: | :---: | :---: |
+| ![About PUC](Screenshot_of_PUCChatBot/about_puc.jpeg) | ![Admission](Screenshot_of_PUCChatBot/Admission.jpeg) | ![Course List](Screenshot_of_PUCChatBot/Course_list.jpeg) |
+
+### 2. Academic & Campus Activities
+| Club Activities | ML Lab Topics | Computer Club |
+| :---: | :---: | :---: |
+| ![Club Activities](Screenshot_of_PUCChatBot/Club_activities.jpeg) | ![ML Lab Topic](Screenshot_of_PUCChatBot/Machine_learning_LabTopic.jpeg) | ![Computer Club](Screenshot_of_PUCChatBot/Computer_Club.jpeg) |
+
+### 3. Scope Boundaries & Guardrails (Out-of-Domain Handling)
+*The system correctly restricts responses to PUC-related topics, gracefully deflecting general requests like weather or unrelated homework help:*
+
+| Weather Query (Deflected) | Homework Help (Deflected) |
+| :---: | :---: |
+| ![Weather](Screenshot_of_PUCChatBot/weather.jpeg) | ![Homework](Screenshot_of_PUCChatBot/Homework.jpeg) |
+
 
 Open [http://localhost:8080](http://localhost:8080) in your browser.
 
